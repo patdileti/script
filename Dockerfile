@@ -109,26 +109,36 @@ RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.con
     && echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf \
     && echo "php_admin_value[error_log] = /var/log/php/fpm-error.log" >> /usr/local/etc/php-fpm.d/www.conf
 
+
 # Create database test script
 RUN echo '<?php\n\
 error_reporting(E_ALL);\n\
 ini_set("display_errors", 1);\n\
 \n\
 echo "Environment variables dump:\\n";\n\
-print_r(getenv());\n\
+$env = getenv();\n\
+print_r($env);\n\
+echo "\\n_ENV variables:\\n";\n\
 print_r($_ENV);\n\
 echo "\\n";\n\
 \n\
 function getEnvVar($name) {\n\
-    $value = getenv($name);\n\
-    if ($value === false || empty($value)) {\n\
-        $value = isset($_ENV[$name]) ? $_ENV[$name] : false;\n\
+    // Try multiple ways to get the environment variable\n\
+    $methods = [\n\
+        "getenv" => function($name) { return getenv($name); },\n\
+        "_ENV" => function($name) { return isset($_ENV[$name]) ? $_ENV[$name] : false; },\n\
+        "env" => function($name) { return isset($env[$name]) ? $env[$name] : false; },\n\
+    ];\n\
+    \n\
+    foreach ($methods as $method => $getter) {\n\
+        $value = $getter($name);\n\
+        echo "Trying $method for $name: " . ($value === false ? "not set" : "value = $value") . "\\n";\n\
+        if ($value !== false && !empty($value)) {\n\
+            return $value;\n\
+        }\n\
     }\n\
-    echo "Checking $name: " . ($value === false ? "not set" : "value = $value") . "\\n";\n\
-    if ($value === false || empty($value)) {\n\
-        throw new Exception("Environment variable $name is not set or empty");\n\
-    }\n\
-    return $value;\n\
+    \n\
+    throw new Exception("Environment variable $name is not set or empty in any context");\n\
 }\n\
 \n\
 try {\n\
@@ -145,11 +155,19 @@ try {\n\
         }\n\
     }\n\
     \n\
-    echo "\\nConfiguration values:\\n";\n\
+    echo "\\nFinal configuration values:\\n";\n\
     print_r($config);\n\
     echo "\\n";\n\
     \n\
     echo "Testing database connection...\\n";\n\
+    \n\
+    // Test DNS resolution first\n\
+    echo "Resolving hostname " . $config["DB_HOST"] . "...\\n";\n\
+    $ip = gethostbyname($config["DB_HOST"]);\n\
+    if ($ip === $config["DB_HOST"]) {\n\
+        throw new Exception("Could not resolve hostname " . $config["DB_HOST"]);\n\
+    }\n\
+    echo "Resolved to IP: $ip\\n";\n\
     \n\
     // Test connection without database first\n\
     $dsn = sprintf("mysql:host=%s;port=%s", $config["DB_HOST"], $config["DB_PORT"]);\n\
@@ -180,6 +198,8 @@ try {\n\
     echo "Error: " . $e->getMessage() . "\\n";\n\
     exit(1);\n\
 }\n' > /var/www/core/db_test.php
+
+
 
 # Create entrypoint script
 RUN echo '#!/bin/sh\n\

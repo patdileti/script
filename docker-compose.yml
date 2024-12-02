@@ -8,11 +8,12 @@ services:
     restart: unless-stopped
     working_dir: /var/www/core
     environment:
-      - DB_HOST=difyserver_menuqrdb
-      - DB_PORT=3306
-      - DB_DATABASE=difyserver
-      - DB_USERNAME=mysql
-      - DB_PASSWORD=5be557415b86d4fc437a
+      DB_CONNECTION: "mysql"
+      DB_HOST: "difyserver_menuqrdb"
+      DB_PORT: "3306"
+      DB_DATABASE: "difyserver"
+      DB_USERNAME: "mysql"
+      DB_PASSWORD: "5be557415b86d4fc437a"
     volumes:
       - .:/var/www
       - ./logs/php:/var/log/php
