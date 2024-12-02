@@ -49,6 +49,8 @@ COPY . /var/www/
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
+    && find /var/www -type f -exec chmod 644 {} \; \
+    && find /var/www -type d -exec chmod 755 {} \; \
     && chmod -R 775 /var/www/storage \
     /var/www/core/bootstrap/cache \
     /var/www/core/lang \
@@ -64,6 +66,8 @@ RUN chown -R www-data:www-data /var/www \
 # Create entrypoint script
 RUN echo '#!/bin/sh\n\
 chown -R www-data:www-data /var/www\n\
+php artisan config:clear || true\n\
+php artisan cache:clear || true\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
