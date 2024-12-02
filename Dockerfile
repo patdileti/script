@@ -84,8 +84,15 @@ RUN echo '#!/bin/sh\n\
 cd /var/www/core\n\
 chown -R www-data:www-data /var/www\n\
 composer dump-autoload --optimize\n\
-php artisan config:clear || true\n\
-php artisan cache:clear || true\n\
+if [ ! -f .env ]; then\n\
+    cp .env.example .env\n\
+fi\n\
+if [ ! -f .env ] || [ -z "$(grep "^APP_KEY=" .env)" ] || [ "$(grep "^APP_KEY=" .env | cut -d"=" -f2)" = "" ]; then\n\
+    php artisan key:generate\n\
+fi\n\
+php artisan config:clear\n\
+php artisan cache:clear\n\
+php artisan migrate --force || true\n\
 cd /var/www\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
