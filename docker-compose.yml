@@ -1,0 +1,47 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: menuqr-app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    networks:
+      - menuqr-network
+
+  webserver:
+    image: nginx:alpine
+    container_name: menuqr-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - menuqr-network
+    depends_on:
+      - app
+
+  db:
+    image: mysql:5.7
+    container_name: menuqr-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: menuqr
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_PASSWORD: your_password
+      MYSQL_USER: menuqr_user
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - menuqr-network
+
+networks:
+  menuqr-network:
+    driver: bridge
+
+volumes:
+  dbdata:
