@@ -87,23 +87,59 @@ RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.con
 
 # Create database test script
 RUN echo '<?php\n\
+error_reporting(E_ALL);\n\
+ini_set("display_errors", 1);\n\
+\n\
+function getEnvVar($name) {\n\
+    $value = getenv($name);\n\
+    if ($value === false || empty($value)) {\n\
+        throw new Exception("Environment variable $name is not set or empty");\n\
+    }\n\
+    return $value;\n\
+}\n\
+\n\
 try {\n\
-    $host = getenv("DB_HOST");\n\
-    $port = getenv("DB_PORT");\n\
-    $database = getenv("DB_DATABASE");\n\
-    $username = getenv("DB_USERNAME");\n\
-    $password = getenv("DB_PASSWORD");\n\
-    echo "Testing database connection...\\n";\n\
-    echo "Host: $host\\n";\n\
-    echo "Port: $port\\n";\n\
-    echo "Database: $database\\n";\n\
-    echo "Username: $username\\n";\n\
-    $dsn = "mysql:host=$host;port=$port;dbname=$database";\n\
-    $conn = new PDO($dsn, $username, $password);\n\
+    // Get and validate environment variables\n\
+    $requiredVars = ["DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USERNAME", "DB_PASSWORD"];\n\
+    $config = [];\n\
+    \n\
+    foreach ($requiredVars as $var) {\n\
+        try {\n\
+            $config[$var] = getEnvVar($var);\n\
+            echo "$var: " . $config[$var] . "\\n";\n\
+        } catch (Exception $e) {\n\
+            echo "Error: " . $e->getMessage() . "\\n";\n\
+            exit(1);\n\
+        }\n\
+    }\n\
+    \n\
+    echo "\\nTesting database connection...\\n";\n\
+    \n\
+    // Test connection without database first\n\
+    $dsn = sprintf("mysql:host=%s;port=%s", $config["DB_HOST"], $config["DB_PORT"]);\n\
+    echo "Trying to connect to MySQL server...\\n";\n\
+    $conn = new PDO($dsn, $config["DB_USERNAME"], $config["DB_PASSWORD"]);\n\
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n\
-    echo "Database connection successful!\\n";\n\
+    echo "Successfully connected to MySQL server!\\n";\n\
+    \n\
+    // Now try with database\n\
+    $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s", $config["DB_HOST"], $config["DB_PORT"], $config["DB_DATABASE"]);\n\
+    echo "\\nTrying to connect to database " . $config["DB_DATABASE"] . "...\\n";\n\
+    $conn = new PDO($dsn, $config["DB_USERNAME"], $config["DB_PASSWORD"]);\n\
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n\
+    echo "Successfully connected to database!\\n";\n\
+    \n\
+    // Test query\n\
+    $stmt = $conn->query("SELECT VERSION() as version");\n\
+    $row = $stmt->fetch();\n\
+    echo "MySQL Version: " . $row["version"] . "\\n";\n\
+    \n\
 } catch(PDOException $e) {\n\
     echo "Connection failed: " . $e->getMessage() . "\\n";\n\
+    exit(1);\n\
+} catch(Exception $e) {\n\
+    echo "Error: " . $e->getMessage() . "\\n";\n\
+    exit(1);\n\
 }\n' > /var/www/core/db_test.php
 
 # Create entrypoint script
@@ -120,9 +156,13 @@ if [ ! -f .env ] || [ -z "$(grep "^APP_KEY=" .env)" ] || [ "$(grep "^APP_KEY=" .
     php artisan key:generate\n\
     echo "Generated new application key"\n\
 fi\n\
-echo "Testing database connection..."\n\
+echo "\\nTesting database connection..."\n\
 php db_test.php\n\
-echo "Clearing configuration cache..."\n\
+if [ $? -ne 0 ]; then\n\
+    echo "Database connection test failed"\n\
+    exit 1\n\
+fi\n\
+echo "\\nClearing configuration cache..."\n\
 php artisan config:clear\n\
 echo "Clearing application cache..."\n\
 php artisan cache:clear\n\
