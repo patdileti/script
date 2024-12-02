@@ -28,6 +28,15 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
+# Copy composer files first
+COPY ./core/composer.json ./core/composer.lock ./core/
+
+# Set working directory to core for composer install
+WORKDIR /var/www/core
+
+# Install composer dependencies
+RUN composer install --no-scripts --no-autoloader
+
 # Copy custom php.ini settings
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
@@ -46,6 +55,9 @@ RUN mkdir -p /var/www/storage \
 
 # Copy application files
 COPY . /var/www/
+
+# Regenerate composer autoload files
+RUN cd /var/www/core && composer dump-autoload --optimize
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
@@ -71,11 +83,15 @@ RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.con
 RUN echo '#!/bin/sh\n\
 cd /var/www/core\n\
 chown -R www-data:www-data /var/www\n\
+composer dump-autoload --optimize\n\
 php artisan config:clear || true\n\
 php artisan cache:clear || true\n\
 cd /var/www\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set working directory back to /var/www
+WORKDIR /var/www
 
 # Expose port 9000
 EXPOSE 9000
