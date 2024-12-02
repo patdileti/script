@@ -90,8 +90,13 @@ RUN echo '<?php\n\
 error_reporting(E_ALL);\n\
 ini_set("display_errors", 1);\n\
 \n\
+echo "Environment variables dump:\\n";\n\
+print_r(getenv());\n\
+echo "\\n";\n\
+\n\
 function getEnvVar($name) {\n\
     $value = getenv($name);\n\
+    echo "Checking $name: " . ($value === false ? "not set" : "value = $value") . "\\n";\n\
     if ($value === false || empty($value)) {\n\
         throw new Exception("Environment variable $name is not set or empty");\n\
     }\n\
@@ -106,17 +111,21 @@ try {\n\
     foreach ($requiredVars as $var) {\n\
         try {\n\
             $config[$var] = getEnvVar($var);\n\
-            echo "$var: " . $config[$var] . "\\n";\n\
         } catch (Exception $e) {\n\
             echo "Error: " . $e->getMessage() . "\\n";\n\
             exit(1);\n\
         }\n\
     }\n\
     \n\
-    echo "\\nTesting database connection...\\n";\n\
+    echo "\\nConfiguration values:\\n";\n\
+    print_r($config);\n\
+    echo "\\n";\n\
+    \n\
+    echo "Testing database connection...\\n";\n\
     \n\
     // Test connection without database first\n\
     $dsn = sprintf("mysql:host=%s;port=%s", $config["DB_HOST"], $config["DB_PORT"]);\n\
+    echo "DSN without database: $dsn\\n";\n\
     echo "Trying to connect to MySQL server...\\n";\n\
     $conn = new PDO($dsn, $config["DB_USERNAME"], $config["DB_PASSWORD"]);\n\
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n\
@@ -124,7 +133,8 @@ try {\n\
     \n\
     // Now try with database\n\
     $dsn = sprintf("mysql:host=%s;port=%s;dbname=%s", $config["DB_HOST"], $config["DB_PORT"], $config["DB_DATABASE"]);\n\
-    echo "\\nTrying to connect to database " . $config["DB_DATABASE"] . "...\\n";\n\
+    echo "DSN with database: $dsn\\n";\n\
+    echo "Trying to connect to database " . $config["DB_DATABASE"] . "...\\n";\n\
     $conn = new PDO($dsn, $config["DB_USERNAME"], $config["DB_PASSWORD"]);\n\
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n\
     echo "Successfully connected to database!\\n";\n\
@@ -136,6 +146,7 @@ try {\n\
     \n\
 } catch(PDOException $e) {\n\
     echo "Connection failed: " . $e->getMessage() . "\\n";\n\
+    echo "Error code: " . $e->getCode() . "\\n";\n\
     exit(1);\n\
 } catch(Exception $e) {\n\
     echo "Error: " . $e->getMessage() . "\\n";\n\
