@@ -31,6 +31,30 @@ WORKDIR /var/www
 # Create log directories
 RUN mkdir -p /var/log/php
 
+# Set environment variables
+ENV APP_NAME=MenuQR \
+    APP_ENV=production \
+    APP_DEBUG=true \
+    APP_URL=https://difyserver-menuqrapp.o4nnnn.easypanel.host \
+    LOG_CHANNEL=stack \
+    LOG_LEVEL=debug \
+    DB_CONNECTION=mysql \
+    DB_HOST=difyserver_menuqrdb \
+    DB_PORT=3306 \
+    DB_DATABASE=difyserver \
+    DB_USERNAME=mysql \
+    DB_PASSWORD=5be557415b86d4fc437a \
+    BROADCAST_DRIVER=log \
+    CACHE_DRIVER=file \
+    FILESYSTEM_DISK=local \
+    QUEUE_CONNECTION=sync \
+    SESSION_DRIVER=file \
+    SESSION_LIFETIME=120 \
+    TRUSTED_PROXIES=* \
+    PHP_MEMORY_LIMIT=1024M \
+    PHP_POST_MAX_SIZE=100M \
+    PHP_UPLOAD_MAX_FILESIZE=100M
+
 # Copy composer files first
 COPY ./core/composer.json ./core/composer.lock ./core/
 
@@ -92,10 +116,14 @@ ini_set("display_errors", 1);\n\
 \n\
 echo "Environment variables dump:\\n";\n\
 print_r(getenv());\n\
+print_r($_ENV);\n\
 echo "\\n";\n\
 \n\
 function getEnvVar($name) {\n\
     $value = getenv($name);\n\
+    if ($value === false || empty($value)) {\n\
+        $value = isset($_ENV[$name]) ? $_ENV[$name] : false;\n\
+    }\n\
     echo "Checking $name: " . ($value === false ? "not set" : "value = $value") . "\\n";\n\
     if ($value === false || empty($value)) {\n\
         throw new Exception("Environment variable $name is not set or empty");\n\
