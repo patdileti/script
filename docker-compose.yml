@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     container_name: menuqr-app
     restart: unless-stopped
+    working_dir: /var/www/core
     environment:
       - APP_ENV=local
       - APP_DEBUG=true

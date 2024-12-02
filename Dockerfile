@@ -63,11 +63,17 @@ RUN chown -R www-data:www-data /var/www \
     /var/www/core/storage/framework/views \
     /var/www/core/storage/logs
 
+# Configure PHP-FPM to run as www-data
+RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i 's/group = www-data/group = www-data/' /usr/local/etc/php-fpm.d/www.conf
+
 # Create entrypoint script
 RUN echo '#!/bin/sh\n\
+cd /var/www/core\n\
 chown -R www-data:www-data /var/www\n\
 php artisan config:clear || true\n\
 php artisan cache:clear || true\n\
+cd /var/www\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
