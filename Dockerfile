@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
+    netcat-traditional \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -92,7 +93,17 @@ if [ ! -f .env ] || [ -z "$(grep "^APP_KEY=" .env)" ] || [ "$(grep "^APP_KEY=" .
 fi\n\
 php artisan config:clear\n\
 php artisan cache:clear\n\
+\n\
+# Wait for MySQL to be ready\n\
+echo "Waiting for MySQL..."\n\
+while ! nc -z db 3306; do\n\
+  sleep 1\n\
+done\n\
+echo "MySQL is ready!"\n\
+\n\
+# Run migrations\n\
 php artisan migrate --force || true\n\
+\n\
 cd /var/www\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
