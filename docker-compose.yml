@@ -31,6 +31,8 @@ services:
       - PHP_UPLOAD_MAX_FILESIZE=100M
     volumes:
       - .:/var/www
+      - ./logs/php:/var/log/php
+      - ./logs/laravel:/var/www/core/storage/logs
     networks:
       - menuqr-network
 
@@ -43,6 +45,7 @@ services:
     volumes:
       - .:/var/www
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./logs/nginx:/var/log/nginx
     depends_on:
       - app
     networks:

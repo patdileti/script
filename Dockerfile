@@ -28,6 +28,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
+# Create log directories
+RUN mkdir -p /var/log/php
+
 # Copy composer files first
 COPY ./core/composer.json ./core/composer.lock ./core/
 
@@ -73,27 +76,37 @@ RUN chown -R www-data:www-data /var/www \
     /var/www/core/storage/framework/cache/data \
     /var/www/core/storage/framework/sessions \
     /var/www/core/storage/framework/views \
-    /var/www/core/storage/logs
+    /var/www/core/storage/logs \
+    && chmod -R 775 /var/log/php
 
 # Configure PHP-FPM to run as www-data
 RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/group = www-data/group = www-data/' /usr/local/etc/php-fpm.d/www.conf
+    && sed -i 's/group = www-data/group = www-data/' /usr/local/etc/php-fpm.d/www.conf \
+    && echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf \
+    && echo "php_admin_value[error_log] = /var/log/php/fpm-error.log" >> /usr/local/etc/php-fpm.d/www.conf
 
 # Create entrypoint script
 RUN echo '#!/bin/sh\n\
 cd /var/www/core\n\
 chown -R www-data:www-data /var/www\n\
+chown -R www-data:www-data /var/log/php\n\
 composer dump-autoload --optimize\n\
 if [ ! -f .env ]; then\n\
     cp .env.example .env\n\
+    echo "Created new .env file"\n\
 fi\n\
 if [ ! -f .env ] || [ -z "$(grep "^APP_KEY=" .env)" ] || [ "$(grep "^APP_KEY=" .env | cut -d"=" -f2)" = "" ]; then\n\
     php artisan key:generate\n\
+    echo "Generated new application key"\n\
 fi\n\
+echo "Clearing configuration cache..."\n\
 php artisan config:clear\n\
+echo "Clearing application cache..."\n\
 php artisan cache:clear\n\
+echo "Running database migrations..."\n\
 php artisan migrate --force || true\n\
 cd /var/www\n\
+echo "Starting PHP-FPM..."\n\
 php-fpm' > /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /usr/local/bin/docker-entrypoint.sh
 
