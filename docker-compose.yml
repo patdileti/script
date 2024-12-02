@@ -9,9 +9,9 @@ services:
     working_dir: /var/www/core
     environment:
       - APP_NAME=MenuQR
-      - APP_ENV=local
+      - APP_ENV=production
       - APP_DEBUG=true
-      - APP_URL=http://localhost
+      - APP_URL=https://difyserver-menuqrapp.o4nnnn.easypanel.host
       - LOG_CHANNEL=stack
       - LOG_LEVEL=debug
       - DB_CONNECTION=mysql
@@ -26,6 +26,7 @@ services:
       - QUEUE_CONNECTION=sync
       - SESSION_DRIVER=file
       - SESSION_LIFETIME=120
+      - TRUSTED_PROXIES=*
       - PHP_MEMORY_LIMIT=1024M
       - PHP_POST_MAX_SIZE=100M
       - PHP_UPLOAD_MAX_FILESIZE=100M

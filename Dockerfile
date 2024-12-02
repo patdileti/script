@@ -85,6 +85,27 @@ RUN sed -i 's/user = www-data/user = www-data/' /usr/local/etc/php-fpm.d/www.con
     && echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf \
     && echo "php_admin_value[error_log] = /var/log/php/fpm-error.log" >> /usr/local/etc/php-fpm.d/www.conf
 
+# Create database test script
+RUN echo '<?php\n\
+try {\n\
+    $host = getenv("DB_HOST");\n\
+    $port = getenv("DB_PORT");\n\
+    $database = getenv("DB_DATABASE");\n\
+    $username = getenv("DB_USERNAME");\n\
+    $password = getenv("DB_PASSWORD");\n\
+    echo "Testing database connection...\\n";\n\
+    echo "Host: $host\\n";\n\
+    echo "Port: $port\\n";\n\
+    echo "Database: $database\\n";\n\
+    echo "Username: $username\\n";\n\
+    $dsn = "mysql:host=$host;port=$port;dbname=$database";\n\
+    $conn = new PDO($dsn, $username, $password);\n\
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);\n\
+    echo "Database connection successful!\\n";\n\
+} catch(PDOException $e) {\n\
+    echo "Connection failed: " . $e->getMessage() . "\\n";\n\
+}\n' > /var/www/core/db_test.php
+
 # Create entrypoint script
 RUN echo '#!/bin/sh\n\
 cd /var/www/core\n\
@@ -99,6 +120,8 @@ if [ ! -f .env ] || [ -z "$(grep "^APP_KEY=" .env)" ] || [ "$(grep "^APP_KEY=" .
     php artisan key:generate\n\
     echo "Generated new application key"\n\
 fi\n\
+echo "Testing database connection..."\n\
+php db_test.php\n\
 echo "Clearing configuration cache..."\n\
 php artisan config:clear\n\
 echo "Clearing application cache..."\n\
