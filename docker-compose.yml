@@ -9,9 +9,13 @@ services:
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      - PHP_MEMORY_LIMIT=1024M
+      - PHP_POST_MAX_SIZE=100M
+      - PHP_UPLOAD_MAX_FILESIZE=100M
     volumes:
-      - .:/var/www
-      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./:/var/www:cached
+      - ./storage:/var/www/storage:delegated
+      - ./core/storage:/var/www/core/storage:delegated
     networks:
       - menuqr-network
 
@@ -22,8 +26,8 @@ services:
     ports:
       - "80:80"
     volumes:
-      - .:/var/www
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./:/var/www:cached
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
     networks:

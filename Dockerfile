@@ -31,7 +31,7 @@ WORKDIR /var/www
 # Copy custom php.ini settings
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Create necessary directories
+# Create necessary directories and set permissions
 RUN mkdir -p /var/www/storage \
     /var/www/core/bootstrap/cache \
     /var/www/core/lang \
@@ -44,8 +44,12 @@ RUN mkdir -p /var/www/storage \
     /var/www/core/storage/framework/views \
     /var/www/core/storage/logs
 
+# Copy application files
+COPY . /var/www/
+
 # Set permissions
-RUN chmod -R 775 /var/www/storage \
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www/storage \
     /var/www/core/bootstrap/cache \
     /var/www/core/lang \
     /var/www/core/plugins \
@@ -55,11 +59,10 @@ RUN chmod -R 775 /var/www/storage \
     /var/www/core/storage/framework/cache/data \
     /var/www/core/storage/framework/sessions \
     /var/www/core/storage/framework/views \
-    /var/www/core/storage/logs \
-    && chown -R www-data:www-data /var/www
+    /var/www/core/storage/logs
 
-# Copy application files
-COPY . /var/www
+# Change to www-data user
+USER www-data
 
 # Expose port 9000
 EXPOSE 9000
