@@ -61,8 +61,9 @@ RUN chown -R www-data:www-data /var/www \
     /var/www/core/storage/framework/views \
     /var/www/core/storage/logs
 
-# Change to www-data user
-USER www-data
+# Configure PHP-FPM to run as root
+RUN sed -i 's/user = www-data/user = root/' /usr/local/etc/php-fpm.d/www.conf && \
+    sed -i 's/group = www-data/group = root/' /usr/local/etc/php-fpm.d/www.conf
 
 # Expose port 9000
 EXPOSE 9000

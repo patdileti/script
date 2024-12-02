@@ -13,9 +13,7 @@ services:
       - PHP_POST_MAX_SIZE=100M
       - PHP_UPLOAD_MAX_FILESIZE=100M
     volumes:
-      - ./:/var/www:cached
-      - ./storage:/var/www/storage:delegated
-      - ./core/storage:/var/www/core/storage:delegated
+      - .:/var/www
     networks:
       - menuqr-network
 
@@ -26,7 +24,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./:/var/www:cached
+      - .:/var/www
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - app
