@@ -31,14 +31,35 @@ WORKDIR /var/www
 # Copy custom php.ini settings
 COPY php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Copy application files
-COPY . /var/www
+# Create necessary directories
+RUN mkdir -p /var/www/storage \
+    /var/www/core/bootstrap/cache \
+    /var/www/core/lang \
+    /var/www/core/plugins \
+    /var/www/core/storage \
+    /var/www/core/storage/framework \
+    /var/www/core/storage/framework/cache \
+    /var/www/core/storage/framework/cache/data \
+    /var/www/core/storage/framework/sessions \
+    /var/www/core/storage/framework/views \
+    /var/www/core/storage/logs
 
 # Set permissions
-RUN chmod -R 775 storage core/bootstrap/cache core/lang core/plugins core/storage \
-    core/storage/framework core/storage/framework/cache core/storage/framework/cache/data \
-    core/storage/framework/sessions core/storage/framework/views core/storage/logs \
+RUN chmod -R 775 /var/www/storage \
+    /var/www/core/bootstrap/cache \
+    /var/www/core/lang \
+    /var/www/core/plugins \
+    /var/www/core/storage \
+    /var/www/core/storage/framework \
+    /var/www/core/storage/framework/cache \
+    /var/www/core/storage/framework/cache/data \
+    /var/www/core/storage/framework/sessions \
+    /var/www/core/storage/framework/views \
+    /var/www/core/storage/logs \
     && chown -R www-data:www-data /var/www
+
+# Copy application files
+COPY . /var/www
 
 # Expose port 9000
 EXPOSE 9000
